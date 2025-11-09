@@ -85,4 +85,5 @@ merge-conflict:
 
 ## Learn More
 
-To make your own GitHub action check out [GitHub's documentation.](https://docs.github.com/en/actions/how-tos/create-and-publish-actions)
+To make your own GitHub action check out
+[GitHub's documentation.](https://docs.github.com/en/actions/how-tos/create-and-publish-actions)

@@ -19,7 +19,7 @@ type ConflictWarning = {
  */
 export async function run(): Promise<void> {
   try {
-    const includeDrafts: boolean = core.getBooleanInput('include-drafts')
+    const includeDrafts: boolean = core.getBooleanInput('include-drafts') || false
     const postComments: boolean = core.getBooleanInput('post-comments') || false
 
     core.debug(`Include draft PRs: ${includeDrafts}`)
@@ -39,7 +39,6 @@ export async function run(): Promise<void> {
     const currentPRChangedFiles = await getPRFiles(octokit, owner, repo, currentPR.number)
     core.info(`Current PR #${currentPR.number} modifies ${currentPRChangedFiles.length} files`)
 
-    // Get all open PRs
     const { data: prs } = await octokit.rest.pulls.list({
       owner,
       repo,
@@ -73,7 +72,6 @@ export async function run(): Promise<void> {
       }
     }
 
-    // Output results
     if (conflictWarnings.length > 0) {
       core.setOutput('has-conflicts', 'true')
       core.setOutput('conflict-count', conflictWarnings.length)

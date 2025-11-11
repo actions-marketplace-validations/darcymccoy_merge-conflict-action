@@ -31248,7 +31248,7 @@ var githubExports = requireGithub();
  */
 async function run() {
     try {
-        const includeDrafts = coreExports.getBooleanInput('include-drafts');
+        const includeDrafts = coreExports.getBooleanInput('include-drafts') || false;
         const postComments = coreExports.getBooleanInput('post-comments') || false;
         coreExports.debug(`Include draft PRs: ${includeDrafts}`);
         const token = coreExports.getInput('github_token', { required: true });
@@ -31262,7 +31262,6 @@ async function run() {
         coreExports.info(`Checking PR #${currentPR.number} for potential conflicts...`);
         const currentPRChangedFiles = await getPRFiles(octokit, owner, repo, currentPR.number);
         coreExports.info(`Current PR #${currentPR.number} modifies ${currentPRChangedFiles.length} files`);
-        // Get all open PRs
         const { data: prs } = await octokit.rest.pulls.list({
             owner,
             repo,
@@ -31288,7 +31287,6 @@ async function run() {
                 });
             }
         }
-        // Output results
         if (conflictWarnings.length > 0) {
             coreExports.setOutput('has-conflicts', 'true');
             coreExports.setOutput('conflict-count', conflictWarnings.length);

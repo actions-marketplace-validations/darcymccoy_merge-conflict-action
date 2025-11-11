@@ -1,13 +1,15 @@
 # Merge Conflict GitHub Action
 
-A GitHub action that warns if merging a PR will create merge conflicts in another PR.
+A GitHub action that can detect and warn if merging a pull request will create merge conflicts in another PR.
 
 ## Usage
 
-Create a `.github/workflows/merge-conflict-action.yml` file in your repository with the following configuration:
+### Create a `.github/workflows/merge-conflict-action.yml` file
 
-```yml
-name: Merge Conflict Scan
+Add the following to the file:
+
+```yaml
+name: PR Conflict Detection
 
 on:
   pull_request:
@@ -16,46 +18,51 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write # Required for posting comments
 
 jobs:
-  merge-conflict:
-    name: Merge Conflict Scan
+  check-conflicts:
+    name: Check for Merge Conflicts
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        id: checkout
-        uses: actions/checkout@v5
-
-      - name: Warn if Creating Merge Conflict
-        id: merge-conflict
+      - name: Check for conflicts with other PRs
         uses: darcymccoy/merge-conflict-action@v1
-
-      - name: Print Output
-        id: output
-        run: echo "${{ steps.merge-conflict.outputs.message }}"
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          include-drafts: false
+          post-comments: true
 ```
 
-Or, add the following to a pre-existing workflow file under the job section:
+### Or, add the following to a pre-existing workflow file under the job section:
 
-```yml
-merge-conflict:
-  name: Merge Conflict Scan
-  runs-on: ubuntu-latest
-
-  steps:
-    - name: Checkout
-      id: checkout
-      uses: actions/checkout@v5
-
-    - name: Warn if Creating Merge Conflict
-      id: merge-conflict
-      uses: darcymccoy/merge-conflict-action@v1
-
-    - name: Print Output
-      id: output
-      run: echo "${{ steps.merge-conflict.outputs.message }}"
+```yaml
+- name: Check for conflicts with other PRs
+  uses: darcymccoy/merge-conflict-action@v1
+  with:
+    github_token: ${{ secrets.GITHUB_TOKEN }}
+    include-drafts: false
+    post-comments: true
 ```
+
+> **Note:** To enable the PR comment feature (`post-comments: true`), you must add the `pull-requests: write` permission
+> to your workflow.
+
+### Inputs
+
+| Input            | Description                                     | Required | Default |
+| ---------------- | ----------------------------------------------- | -------- | ------- |
+| `github_token`   | GitHub token for API access                     | Yes      | N/A     |
+| `include-drafts` | Include draft PRs in conflict detecting         | No       | `false` |
+| `post-comments`  | Post a comment on the PR with conflict warnings | No       | `false` |
+
+### Outputs
+
+| Output           | Description                                                   |
+| ---------------- | ------------------------------------------------------------- |
+| `has-conflicts`  | Whether potential conflicts were detected (`true` or `false`) |
+| `conflict-count` | Number of PRs with potential conflicts                        |
+| `conflicts`      | JSON array of conflict details                                |
 
 ## Getting Started
 

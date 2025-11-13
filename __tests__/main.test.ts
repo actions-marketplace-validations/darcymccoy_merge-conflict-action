@@ -300,11 +300,11 @@ function setupMockOctokit() {
   return {
     rest: {
       pulls: {
-        list: jest.fn() as any,
-        listFiles: jest.fn() as any
+        list: jest.fn(),
+        listFiles: jest.fn()
       },
       issues: {
-        createComment: jest.fn() as any
+        createComment: jest.fn()
       }
     }
   }

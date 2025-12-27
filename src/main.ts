@@ -84,10 +84,20 @@ export async function run(): Promise<void> {
       core.summary.addRaw(summary).write()
 
       if (postComments) {
-        await postConflictComment(repoInfo, currentPR.number, conflictWarnings)
+        try {
+          await postConflictComment(repoInfo, currentPR.number, conflictWarnings)
+        } catch (error) {
+          if (error instanceof Error) {
+            if (error.message.includes('Resource not accessible by integration')) {
+              core.warning('Insufficient permissions to post comment. Add "pull-requests: write" permission.')
+            } else {
+              core.warning(`Failed to post comment: ${error.message}`)
+            }
+          }
+        }
       }
 
-      core.info(`✅ Found ${conflictWarnings.length} PRs with potential conflicts`)
+      core.info(`Found ${conflictWarnings.length} PRs with potential conflicts`)
     } else {
       core.setOutput('has-conflicts', 'false')
       core.setOutput('conflict-count', 0)

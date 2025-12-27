@@ -1,5 +1,6 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
+import { GitHub } from '@actions/github/lib/utils.js'
 
 type FileChange = {
   filename: string
@@ -12,11 +13,12 @@ type ConflictWarning = {
   conflictingFiles: string[]
 }
 
-/**
- * The main function for the action.
- *
- * @returns Resolves when the action is complete.
- */
+type RepositoryInfo = {
+  octokit: InstanceType<typeof GitHub>
+  owner: string
+  repo: string
+}
+
 export async function run(): Promise<void> {
   try {
     const includeDrafts: boolean = core.getBooleanInput('include-drafts') || false
@@ -27,6 +29,7 @@ export async function run(): Promise<void> {
     const token = core.getInput('github_token', { required: true })
     const octokit = github.getOctokit(token)
     const { owner, repo } = github.context.repo
+    const repoInfo: RepositoryInfo = { octokit, owner, repo }
 
     const currentPR = github.context.payload.pull_request
     if (!currentPR) {
@@ -36,12 +39,12 @@ export async function run(): Promise<void> {
 
     core.info(`Checking PR #${currentPR.number} for potential conflicts...`)
 
-    const currentPRChangedFiles = await getPRFiles(octokit, owner, repo, currentPR.number)
+    const currentPRChangedFiles = await getPRFiles(repoInfo, currentPR.number)
     core.info(`Current PR #${currentPR.number} modifies ${currentPRChangedFiles.length} files`)
 
     const { data: prs } = await octokit.rest.pulls.list({
-      owner,
-      repo,
+      owner: repoInfo.owner,
+      repo: repoInfo.repo,
       state: 'open',
       per_page: 100
     })
@@ -57,7 +60,7 @@ export async function run(): Promise<void> {
         continue
       }
 
-      const otherPRChangedFiles = await getPRFiles(octokit, owner, repo, pr.number)
+      const otherPRChangedFiles = await getPRFiles(repoInfo, pr.number)
 
       const conflictingFiles = findConflictingFiles(currentPRChangedFiles, otherPRChangedFiles)
 
@@ -81,7 +84,7 @@ export async function run(): Promise<void> {
       core.summary.addRaw(summary).write()
 
       if (postComments) {
-        await postConflictComment(octokit, owner, repo, currentPR.number, conflictWarnings)
+        await postConflictComment(repoInfo, currentPR.number, conflictWarnings)
       }
 
       core.info(`✅ Found ${conflictWarnings.length} PRs with potential conflicts`)
@@ -95,23 +98,15 @@ export async function run(): Promise<void> {
   }
 }
 
-/**
- * Get all files changed in a PR
- */
-async function getPRFiles(
-  octokit: ReturnType<typeof github.getOctokit>,
-  owner: string,
-  repo: string,
-  prNumber: number
-): Promise<FileChange[]> {
+async function getPRFiles(repoInfo: RepositoryInfo, prNumber: number): Promise<FileChange[]> {
   const files: FileChange[] = []
   let page = 1
   const perPage = 100
 
   while (true) {
-    const { data } = await octokit.rest.pulls.listFiles({
-      owner,
-      repo,
+    const { data } = await repoInfo.octokit.rest.pulls.listFiles({
+      owner: repoInfo.owner,
+      repo: repoInfo.repo,
       pull_number: prNumber,
       per_page: perPage,
       page
@@ -171,17 +166,15 @@ function generateSummary(warnings: ConflictWarning[]): string {
 }
 
 async function postConflictComment(
-  octokit: ReturnType<typeof github.getOctokit>,
-  owner: string,
-  repo: string,
+  repoInfo: RepositoryInfo,
   prNumber: number,
   warnings: ConflictWarning[]
 ): Promise<void> {
   const summary = generateSummary(warnings)
 
-  await octokit.rest.issues.createComment({
-    owner,
-    repo,
+  await repoInfo.octokit.rest.issues.createComment({
+    owner: repoInfo.owner,
+    repo: repoInfo.repo,
     issue_number: prNumber,
     body: summary
   })

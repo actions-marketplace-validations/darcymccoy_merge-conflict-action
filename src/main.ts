@@ -21,8 +21,8 @@ type RepositoryInfo = {
 
 export async function run(): Promise<void> {
   try {
-    const includeDrafts: boolean = core.getBooleanInput('include-drafts') || false
-    const postComments: boolean = core.getBooleanInput('post-comments') || false
+    const includeDrafts: boolean = core.getBooleanInput('include-drafts', { required: false })
+    const postComments: boolean = core.getBooleanInput('post-comments', { required: false })
 
     core.debug(`Include draft PRs: ${includeDrafts}`)
 

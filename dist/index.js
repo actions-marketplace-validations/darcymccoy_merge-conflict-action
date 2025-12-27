@@ -32281,7 +32281,7 @@ async function run() {
             const otherPRChangedFiles = await getPRFiles(repoInfo, pr.number);
             const conflictingFiles = findConflictingFiles(currentPRChangedFiles, otherPRChangedFiles);
             if (conflictingFiles.length > 0) {
-                coreExports.warning(`⚠️  PR #${pr.number} may have conflicts: ${conflictingFiles.length} overlapping files`);
+                coreExports.warning(`PR #${pr.number} may have conflicts: ${conflictingFiles.length} overlapping files`);
                 conflictWarnings.push({
                     prNumber: pr.number,
                     prTitle: pr.title,
@@ -32296,14 +32296,26 @@ async function run() {
             const summary = generateSummary(conflictWarnings);
             coreExports.summary.addRaw(summary).write();
             if (postComments) {
-                await postConflictComment(repoInfo, currentPR.number, conflictWarnings);
+                try {
+                    await postConflictComment(repoInfo, currentPR.number, conflictWarnings);
+                }
+                catch (error) {
+                    if (error instanceof Error) {
+                        if (error.message.includes('Resource not accessible by integration')) {
+                            coreExports.warning('Insufficient permissions to post comment. Add "pull-requests: write" permission.');
+                        }
+                        else {
+                            coreExports.warning(`Failed to post comment: ${error.message}`);
+                        }
+                    }
+                }
             }
-            coreExports.info(`✅ Found ${conflictWarnings.length} PRs with potential conflicts`);
+            coreExports.info(`Found ${conflictWarnings.length} PRs with potential conflicts`);
         }
         else {
             coreExports.setOutput('has-conflicts', 'false');
             coreExports.setOutput('conflict-count', 0);
-            coreExports.info('✅ No potential conflicts detected with other open PRs');
+            coreExports.info('No potential conflicts detected with other open PRs');
         }
     }
     catch (error) {
@@ -32340,7 +32352,7 @@ function findConflictingFiles(currentPRFiles, otherPRFiles) {
     return otherModifiedFiles.map((f) => f.filename);
 }
 function generateSummary(warnings) {
-    let summary = '## ⚠️ Potential Merge Conflicts Detected\n\n';
+    let summary = '## Potential Merge Conflicts Detected\n\n';
     summary += 'The following PRs modify the same files and may have conflicts when this PR is merged:\n\n';
     for (const warning of warnings) {
         summary += `### PR #${warning.prNumber}: ${warning.prTitle}\n`;

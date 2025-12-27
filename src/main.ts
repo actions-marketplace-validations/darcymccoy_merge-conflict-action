@@ -65,7 +65,7 @@ export async function run(): Promise<void> {
       const conflictingFiles = findConflictingFiles(currentPRChangedFiles, otherPRChangedFiles)
 
       if (conflictingFiles.length > 0) {
-        core.warning(`⚠️  PR #${pr.number} may have conflicts: ${conflictingFiles.length} overlapping files`)
+        core.warning(`PR #${pr.number} may have conflicts: ${conflictingFiles.length} overlapping files`)
 
         conflictWarnings.push({
           prNumber: pr.number,
@@ -101,7 +101,7 @@ export async function run(): Promise<void> {
     } else {
       core.setOutput('has-conflicts', 'false')
       core.setOutput('conflict-count', 0)
-      core.info('✅ No potential conflicts detected with other open PRs')
+      core.info('No potential conflicts detected with other open PRs')
     }
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
@@ -151,7 +151,7 @@ function findConflictingFiles(currentPRFiles: FileChange[], otherPRFiles: FileCh
 }
 
 function generateSummary(warnings: ConflictWarning[]): string {
-  let summary = '## ⚠️ Potential Merge Conflicts Detected\n\n'
+  let summary = '## Potential Merge Conflicts Detected\n\n'
   summary += 'The following PRs modify the same files and may have conflicts when this PR is merged:\n\n'
 
   for (const warning of warnings) {
